@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>코사인 유사도 시각화</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .vector-input {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .vector-input h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .input-group label {
+            width: 30px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+        }
+
+        .result-card h4 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .result-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .result-card .formula {
+            font-size: 0.85em;
+            opacity: 0.8;
+            font-family: 'Courier New', monospace;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #2196f3;
+        }
+
+        .info-box h4 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #555;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+           
+            h1 {
+                font-size: 1.8em;
+            }
+           
+            canvas {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📐 코사인 유사도 시각화</h1>
+        <p class="subtitle">두 벡터의 내적과 코사인 유사도를 실시간으로 확인해보세요</p>
+
+        <div class="controls">
+            <div class="vector-input">
+                <h3>벡터 A (빨강)</h3>
+                <div class="input-group">
+                    <label>x:</label>
+                    <input type="number" id="ax" value="4" step="0.5">
+                </div>
+                <div class="input-group">
+                    <label>y:</label>
+                    <input type="number" id="ay" value="3" step="0.5">
+                </div>
+            </div>
+
+            <div class="vector-input">
+                <h3>벡터 B (파랑)</h3>
+                <div class="input-group">
+                    <label>x:</label>
+                    <input type="number" id="bx" value="3" step="0.5">
+                </div>
+                <div class="input-group">
+                    <label>y:</label>
+                    <input type="number" id="by" value="4" step="0.5">
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas" width="600" height="600"></canvas>
+        </div>
+
+        <div class="results">
+            <div class="result-card">
+                <h4>내적 (Dot Product)</h4>
+                <div class="value" id="dotProduct">0</div>
+                <div class="formula">A · B = Ax·Bx + Ay·By</div>
+            </div>
+
+            <div class="result-card">
+                <h4>벡터 A 크기</h4>
+                <div class="value" id="magnitudeA">0</div>
+                <div class="formula">||A|| = √(Ax² + Ay²)</div>
+            </div>
+
+            <div class="result-card">
+                <h4>벡터 B 크기</h4>
+                <div class="value" id="magnitudeB">0</div>
+                <div class="formula">||B|| = √(Bx² + By²)</div>
+            </div>
+
+            <div class="result-card">
+                <h4>코사인 유사도</h4>
+                <div class="value" id="cosineSimilarity">0</div>
+                <div class="formula">cos θ = (A·B) / (||A||·||B||)</div>
+            </div>
+
+            <div class="result-card">
+                <h4>각도 (θ)</h4>
+                <div class="value" id="angle">0°</div>
+                <div class="formula">θ = arccos(cos θ)</div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <h4>💡 코사인 유사도란?</h4>
+            <p>
+                코사인 유사도는 두 벡터 사이의 각도를 이용하여 유사도를 측정하는 방법입니다.
+                값의 범위는 -1에서 1까지이며, <strong>1에 가까울수록 두 벡터가 같은 방향</strong>을 가리키고,
+                <strong>0에 가까우면 직각</strong>, <strong>-1에 가까우면 반대 방향</strong>을 의미합니다.
+                추천 시스템, 문서 유사도 분석 등에서 널리 활용됩니다.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+       
+        const inputs = {
+            ax: document.getElementById('ax'),
+            ay: document.getElementById('ay'),
+            bx: document.getElementById('bx'),
+            by: document.getElementById('by')
+        };
+
+        const origin = { x: canvas.width / 2, y: canvas.height / 2 };
+        const scale = 40;
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+
+            // 격자 그리기
+            for (let i = -10; i <= 10; i++) {
+                // 세로선
+                ctx.beginPath();
+                ctx.moveTo(origin.x + i * scale, 0);
+                ctx.lineTo(origin.x + i * scale, canvas.height);
+                ctx.stroke();
+
+                // 가로선
+                ctx.beginPath();
+                ctx.moveTo(0, origin.y + i * scale);
+                ctx.lineTo(canvas.width, origin.y + i * scale);
+                ctx.stroke();
+            }
+
+            // 축 그리기
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+           
+            // x축
+            ctx.beginPath();
+            ctx.moveTo(0, origin.y);
+            ctx.lineTo(canvas.width, origin.y);
+            ctx.stroke();
+
+            // y축
+            ctx.beginPath();
+            ctx.moveTo(origin.x, 0);
+            ctx.lineTo(origin.x, canvas.height);
+            ctx.stroke();
+
+            // 축 레이블
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText('X', canvas.width - 20, origin.y - 10);
+            ctx.fillText('Y', origin.x + 10, 20);
+        }
+
+        function drawVector(x, y, color, label) {
+            const endX = origin.x + x * scale;
+            const endY = origin.y - y * scale;
+
+            // 벡터 선
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(origin.x, origin.y);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+
+            // 화살표
+            const angle = Math.atan2(endY - origin.y, endX - origin.x);
+            const arrowSize = 15;
+           
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(
+                endX - arrowSize * Math.cos(angle - Math.PI / 6),
+                endY - arrowSize * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+                endX - arrowSize * Math.cos(angle + Math.PI / 6),
+                endY - arrowSize * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fill();
+
+            // 레이블
+            ctx.fillStyle = color;
+            ctx.font = 'bold 18px Arial';
+            ctx.fillText(label, endX + 10, endY - 10);
+            ctx.font = '14px Arial';
+            ctx.fillText(`(${x.toFixed(1)}, ${y.toFixed(1)})`, endX + 10, endY + 10);
+        }
+
+        function drawAngle(ax, ay, bx, by, angleRad) {
+            const radius = 60;
+            const startAngle = Math.atan2(-by, bx);
+            const endAngle = Math.atan2(-ay, ax);
+
+            ctx.strokeStyle = 'rgba(0, 150, 0, 0.5)';
+            ctx.fillStyle = 'rgba(0, 150, 0, 0.1)';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.arc(origin.x, origin.y, radius, startAngle, endAngle, by * ax - bx * ay < 0);
+            ctx.lineTo(origin.x, origin.y);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 각도 표시
+            const midAngle = (startAngle + endAngle) / 2;
+            const labelX = origin.x + Math.cos(midAngle) * (radius + 20);
+            const labelY = origin.y + Math.sin(midAngle) * (radius + 20);
+           
+            ctx.fillStyle = '#00A000';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(`θ = ${(angleRad * 180 / Math.PI).toFixed(1)}°`, labelX, labelY);
+        }
+
+        function calculate() {
+            const ax = parseFloat(inputs.ax.value);
+            const ay = parseFloat(inputs.ay.value);
+            const bx = parseFloat(inputs.bx.value);
+            const by = parseFloat(inputs.by.value);
+
+            // 내적
+            const dotProduct = ax * bx + ay * by;
+
+            // 벡터 크기
+            const magnitudeA = Math.sqrt(ax * ax + ay * ay);
+            const magnitudeB = Math.sqrt(bx * bx + by * by);
+
+            // 코사인 유사도
+            let cosineSimilarity = 0;
+            if (magnitudeA > 0 && magnitudeB > 0) {
+                cosineSimilarity = dotProduct / (magnitudeA * magnitudeB);
+            }
+
+            // 각도
+            const angleRad = Math.acos(Math.max(-1, Math.min(1, cosineSimilarity)));
+            const angleDeg = angleRad * 180 / Math.PI;
+
+            // 결과 업데이트
+            document.getElementById('dotProduct').textContent = dotProduct.toFixed(2);
+            document.getElementById('magnitudeA').textContent = magnitudeA.toFixed(2);
+            document.getElementById('magnitudeB').textContent = magnitudeB.toFixed(2);
+            document.getElementById('cosineSimilarity').textContent = cosineSimilarity.toFixed(4);
+            document.getElementById('angle').textContent = angleDeg.toFixed(1) + '°';
+
+            // 캔버스 그리기
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+           
+            if (magnitudeA > 0 && magnitudeB > 0) {
+                drawAngle(ax, ay, bx, by, angleRad);
+            }
+           
+            drawVector(ax, ay, '#e74c3c', 'A');
+            drawVector(bx, by, '#3498db', 'B');
+        }
+
+        // 이벤트 리스너
+        Object.values(inputs).forEach(input => {
+            input.addEventListener('input', calculate);
+        });
+
+        // 초기 계산
+        calculate();
+    </script>
+</body>
+</html>
